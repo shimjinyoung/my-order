@@ -1,0 +1,44 @@
+- 접속 사이트
+1.  portal.azure.com (컨테이너서비스등록)  : admin8@gkn2019hotmail.onmicrosoft.com/wrk941025!!
+2. dev.azure.com (DevOps Pipeline  등록)
+3. github.com (소스 레파지토리 등록) : wrk94@naver.com/wrk941025
+
+[ portal 에서 리소스생성]
+- 리소스그룹만들기
+ ㄴ 클러스터생성( Kubernetes서비스 생성)
+ ㄴ 컨테이너 Registry 생성
+
+[Cloudshell 에서 클러스터 연결]
+- az aks get-credentials --resource-group user8rg --name user8aks
+- kubectl get svc
+
+
+[ 클러스터(AKS)와 컨테이너 Registry(ACR) 연결]
+az aks update ?n user8aks ?g user8rg --attach-acr user8acr
+
+[ 클러스터에 Kafka 설치]
+-   helm은 azure cloud shell 에는 기본적으로 설치되어 있음
+curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
+kubectl --namespace kube-system create sa tiller      # helm 의 설치관리자를 위한 시스템 사용자 생성
+kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
+
+helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
+helm repo update
+kubectl create ns kafka
+helm install my-kafka --namespace kafka incubator/kafka
+
+
+
+
+
+
+---------------------------------------------------------------------------------------------
+[ Pipeline 생성]
+- Settings > Service Connections 설정
+ ㄴ Docker Registry 선택 및  Azure container Registry 선택
+
+[Pipeline Library생성]
+
+
+
+

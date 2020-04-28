@@ -1,0 +1,165 @@
+프로젝트 참조예제
+> github.com/msa-ez
+
+==================================================
+- 접속 사이트
+1.  portal.azure.com (컨테이너서비스등록)  : admin8@gkn2019hotmail.onmicrosoft.com/wrk941025!!
+2. dev.azure.com (DevOps Pipeline  등록)
+3. github.com (소스 레파지토리 등록) : wrk94@naver.com/wrk941025
+
+=================== 1. github 소스 커밋 ===========================================
+[github에 소스 커밋]
+github.com 에서 my-order 와 my-product 레파지 토리 생성
+order 와 product 폴더로 이동하여 git 명령어 실행
+> git init
+> git add .
+> git commit -m "first commit"
+> git remote add origin https://github.com/[your github name]/my-product.git
+> git push -u origin master
+
+
+=================== 2. Auzre.com에서 리소스 생성설정 ===========================================
+[ portal 에서 리소스생성]
+- 리소스그룹만들기
+ ㄴ 클러스터생성( Kubernetes서비스 생성)
+ ㄴ 컨테이너 Registry 생성
+
+[Cloudshell 에서 클러스터 연결]
+- az aks get-credentials --resource-group user8rg --name user8aks
+- kubectl get svc
+
+[ 클러스터(AKS)와 컨테이너 Registry(ACR) 연결]
+az aks update ?n user8aks ?g user8rg --attach-acr user8acr
+
+[ 클러스터에 Kafka 설치]
+-   helm은 azure cloud shell 에는 기본적으로 설치되어 있음
+curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
+kubectl --namespace kube-system create sa tiller      # helm 의 설치관리자를 위한 시스템 사용자 생성
+kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
+
+helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
+helm repo update
+kubectl create ns kafka
+helm install my-kafka --namespace kafka incubator/kafka
+
+- 설치 확인
+
+
+[클라우드에서 kafka 테스트]
+- 토픽생성: kubectl -n kafka exec my-kafka-0 -- /usr/bin/kafka-topics --zookeeper my-kafka-zookeeper:2181 --topic eventTopic --create --partitions 1 --replication-factor 1
+
+송신
+kubectl -n kafka exec -ti my-kafka-0 -- /usr/bin/kafka-console-producer --broker-list my-kafka:9092 --topic eventTopic
+
+수신(대기)
+kubectl -n kafka exec -ti my-kafka-0 -- /usr/bin/kafka-console-consumer --bootstrap-server my-kafka:9092 --topic eventTopic --from-beginning
+
+=================== 3. dev.Auzre.com에서 Pipeline 생성설정 ===========================================
+[ Pipeline 초기 세팅]
+- Settings > Service Connections 설정
+ ㄴ Docker Registry 선택 및  Azure container Registry 선택
+
+[Pipeline Library생성 -소스의 공통부분 처리를위해 사용] - azurepipeline.yml 파일 확인
+- Pipeline > library
+ ㄴ Variable추가: 
+   ㄴcontainerRegistry : user8acr.azurecr.io
+   ㄴcontainerRegistryDockerConnection : acr
+   ㄴenvironment : aks.default
+
+- 환경변수 추가 
+ ㄴ Pipeline > Environments
+   ㄴ 클러스터 연결 설정 함.
+
+[ Pipeline 생성] > 빌드>배포 한번에 수행
+-  (github yml) 선택하여 시작함.
+-  github 에서 pipeline 생성할 프로젝트를 선택하여 Run
+
+[pod 생성 확인] 
+- 클라우드shell에서..:  kubectl get po
+
+
+=================== 3. 클러스터 내부의 http client 를 실행하여 테스트 ===========================================
+[ 클라우드shell에서 pod를 생성하여 사이트 접속 테스트 ]
+[ 현재는 외부로 서비스가 안열려 있으므로, 클러스트에 POD(httpie이미지)를 생성하여 활용]
+cat <<EOF | kubectl apply -f -
+apiVersion: "v1"
+kind: "Pod"
+metadata: 
+  name: httpie
+  labels: 
+    name: httpie
+spec: 
+  containers: 
+    - 
+      name: httpie
+      image: clue/httpie
+      command:
+        - sleep
+        - "36000"
+EOF
+
+[ httpie POD에 접속 ]
+- kubectl exec -it httpie bin/bash
+
+[명령 실행하여 테스트]
+-  #http  order:8080 
+
+[주문 실행한다.]
+http http://order:8080 orderId=1 qty=40
+
+[kfaka 이벤트수신 데몬에서 확인한다.]
+
+=================== 4. Product서비스를 내리고 주문 테스트 ===========================================
+[이벤트드리븐 방식 메시지 처리 - pub/sub방식 테스트]
+
+- yml을 수정해서..product 만 POD를 죽인다.
+ ㄴ replicas를 0으로 바꾼다 : kubectl edit deploy product
+
+- order 주문을 해본다.
+- kfaka 이벤트수신 데몬에서 확인한다
+- product서비스를 살린다.
+- kfaka 이벤트수신 데몬에서 확인한다
+
+=================== 5. Gateway서비스 생성 ===========================================
+- spingboot cloud 프로젝트에서 
+- Gateway 디펜던시 선택
+- Generate한다.
+- intelliJ소스 디렉토리 하위에 gateway디렉토리를 만들고 여기에 받은 압축파일을 푼다.
+- 압축푼 폴더명을 'gateway' 로 주고, 이를 order, product 들이 있는 위치에 같이 둠 
+- IDE(intellij 등) 에서 열고 application.properties 파일의 확장자를 application.yml 로 변경
+- application.yml 내용에 아래를 입력
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: google
+          uri: http://google.com
+          predicates:
+            - Path=/drive
+        - id: facebook
+          uri: http://facebook.com
+          predicates:
+            - Path=/groups
+        - id: order
+          uri: http://localhost:8082
+          predicates:
+            - Path=/orders/**
+        - id: product
+          uri: http://localhost:8081
+          predicates:
+            - Path=/products/**
+
+- 해당 프로젝트를 실행: mvn프로젝트로변경 ->  pom.xml 파일을 mvn 프로젝트로등록
+- localhost:8080/drive 로 접속 --> 구글 드라이브로 연결
+- localhost:8080/groups 로 접속 --> 페이스북으로 연결
+
+
+
+
+
+
+
+
+
+
+
