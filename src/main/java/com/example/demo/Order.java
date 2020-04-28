@@ -20,7 +20,7 @@ public class Order {
     int qty;
     String productName;
 
-    @PostPersist  //라이프사이클 hook 설정
+    @PostPersist  //라이프사이클 hook 설정 어노테이션
     public void eventPublish(){
         OrderChanged orderChanged = new OrderChanged();
         orderChanged.setOrderId(this.getOrderId());
