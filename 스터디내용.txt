@@ -1,0 +1,6 @@
+1. github repository ( wrk94@naver.com / 심진영1! )
+  > https://github.com/shimjinyoung/my-order
+
+2. Master 브랜치와 BR1 브랜치 두 개를 생성해서 병합 및 Complict 테스트 진행
+
+3. Sourcetree 와 Intelij Workspace는 Checkout 브랜치가 동기화되어 움직인다.
